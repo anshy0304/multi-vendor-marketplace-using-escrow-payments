@@ -17,11 +17,9 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        // http://localhost:3000 is the default URL for React apps
-        // If  use a different port like 5173 (Vite), just change this URL!
-        policy.WithOrigins("http://localhost:5173")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy.AllowAnyOrigin()
+        .AllowAnyHeader()
+        .AllowAnyMethod();
     });
 });
 var secretKey = builder.Configuration["JwtSettings:SecretKey"];
@@ -41,15 +39,18 @@ builder.Services.AddDbContext<MarketPlaceDbContext>(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
     app.MapOpenApi();
     app.MapScalarApiReference();
-}
+
 
 app.UseHttpsRedirection();
 app.UseCors("AllowReactApp");
 app.UseAuthentication();
 app.UseAuthorization();
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<MarketPlaceDbContext>();
+    db.Database.EnsureCreated();
+}
 app.MapControllers();
 app.Run();

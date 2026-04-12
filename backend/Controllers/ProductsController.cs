@@ -36,14 +36,6 @@ namespace backend.Controllers
                 .ToListAsync();
             return Ok(products);
         }
-        [HttpGet("buyer/{buyerId}")]
-        public async Task<ActionResult<IEnumerable<Order>>> GetOrdersByBuyer(int buyerId)
-        {
-            var orders = await _context.Orders
-                .Include(o => o.Product)
-                .Where(o => o.BuyerId == buyerId)
-                .ToListAsync();
-            return Ok(orders);
-        }
+        
     }
 }

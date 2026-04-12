@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 
+using System.Security.Claims;
 namespace backend.Controllers
 {
     [Route("api/[controller]")]
@@ -101,6 +101,49 @@ namespace backend.Controllers
                 OrderStatus = order.Status,
                 EscrowStatus = escrow.Status
             });
+        }
+        [HttpGet("buyer/{buyerId}")]
+        public async Task<ActionResult<IEnumerable<Order>>> GetOrdersByBuyer(int buyerId)
+        {
+            var orders = await _context.Orders
+                .Include(o => o.Product)
+                .Where(o => o.BuyerId == buyerId)
+                .ToListAsync();
+            return Ok(orders);
+        }
+        [HttpGet("seller/{sellerId}")]
+        public async Task<ActionResult<IEnumerable<Order>>> GetOrdersForSeller(int sellerId)
+        {
+            // Find all orders where the Product's SellerId matches this seller
+            var orders = await _context.Orders
+                .Include(o => o.Product)
+                .Where(o => o.Product.SellerId == sellerId)
+                .ToListAsync();
+
+            return Ok(orders);
+        }
+        [HttpPost("create-razorpay-order")]
+        public IActionResult CreateRazorPayOrder([FromBody] CheckOutRequestDto request) {
+            var product = _context.Products.Find(request.ProductId);
+            if (product == null) return NotFound("Product not found");
+            string? keyId = Environment.GetEnvironmentVariable("Razorpay__KeyId");
+            string? keySecret = Environment.GetEnvironmentVariable("Razorpay__KeySecret");
+            Razorpay.Api.RazorpayClient client = new Razorpay.Api.RazorpayClient(keyId, keySecret);
+            Dictionary<string, object> options = new Dictionary<string, object>();
+            options.Add("amount",(int)(product.Price * 100));
+            options.Add("currency","INR");
+            options.Add("receipt", "receipt_" + Guid.NewGuid().ToString().Substring(0, 8));
+
+            Razorpay.Api.Order order = client.Order.Create(options);
+
+            return Ok(new
+            {
+                orderId = order["id"].ToString(),
+                amount = order["amount"].ToString(),
+                currency = order["currency"].ToString(),
+                productName = product.Name
+            });
+
         }
     }
 }

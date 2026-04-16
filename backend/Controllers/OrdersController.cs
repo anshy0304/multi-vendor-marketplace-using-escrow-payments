@@ -15,9 +15,11 @@ namespace backend.Controllers
     public class OrdersController : ControllerBase
     {
         private readonly MarketPlaceDbContext _context;
-        public OrdersController(MarketPlaceDbContext context)
+        private readonly IConfiguration _configuration;
+        public OrdersController(MarketPlaceDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
         [HttpPost("checkout")]
         public async Task<ActionResult> Checkout(CheckOutRequestDto request)
@@ -126,8 +128,10 @@ namespace backend.Controllers
         public IActionResult CreateRazorPayOrder([FromBody] CheckOutRequestDto request) {
             var product = _context.Products.Find(request.ProductId);
             if (product == null) return NotFound("Product not found");
-            string? keyId = Environment.GetEnvironmentVariable("Razorpay__KeyId");
-            string? keySecret = Environment.GetEnvironmentVariable("Razorpay__KeySecret");
+            string? keyId = _configuration["Razorpay:KeyId"];
+            string? keySecret = _configuration["Razorpay:KeySecret"];
+            if (string.IsNullOrEmpty(keyId) || string.IsNullOrEmpty(keySecret))
+                return BadRequest("Razorpay keys are missing!");
             Razorpay.Api.RazorpayClient client = new Razorpay.Api.RazorpayClient(keyId, keySecret);
             Dictionary<string, object> options = new Dictionary<string, object>();
             options.Add("amount",(int)(product.Price * 100));

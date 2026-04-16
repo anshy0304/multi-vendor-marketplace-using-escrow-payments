@@ -43,8 +43,8 @@ var app = builder.Build();
     app.MapScalarApiReference();
 
 
-app.UseHttpsRedirection();
 app.UseCors("AllowReactApp");
+app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 using (var scope = app.Services.CreateScope())
